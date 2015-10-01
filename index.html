@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <title>Bezier Curve</title>
+        <meta charset="utf-8" />
+        <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css" />
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css" />
+        <style rel="stylesheet">
+            #BezierCanvas
+            {
+                
+            }
+            #ControlPointList div
+            {
+                margin-bottom: 10px;
+            }
+            #ControlPointList div:last-child
+            {
+                margin-bottom: 0px;
+            }
+            #SidePanel .row
+            {
+                margin-bottom: 10px;
+            }
+            #SidePanel .row:last-child
+            {
+                margin-bottom: 0px;
+            }
+        </style>
+        <!-- http://www.moshplant.com/direct-or/bezier/math.html -->
+    </head>
+    <body>
+        <div class="container" style="width: 1140px;">
+            <div class="page-header">
+                <h1>Bezier Curve</h1>
+            </div>
+            <div class="panel panel-default" style="">
+                <div class="panel-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div style="border: black 1px solid; border-radius: 10px;">
+                                <canvas id="BezierCanvas" width="727" height="480"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div id="SidePanel" class="container-fluid">
+                                <div class="row">
+                                    <div class="input-group">
+                                        <label class="input-group-addon">Curve Segments</label>
+                                        <label id="CurveSegmentsLabel" class="form-control"></label>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div id="SegmentsSlider"></div>
+                                </div>
+                                <div class="row">
+                                    <div class="input-group">
+                                        <span class="input-group-addon"><input type="checkbox" id="CurveDrawArmature" checked="true" /></span>
+                                        <label class="form-control" for="CurveDrawArmature">Draw Armature</label>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="input-group">
+                                        <span class="input-group-addon"><input type="checkbox" id="CurveDrawControls" checked="true" /></span>
+                                        <label class="form-control" for="CurveDrawControls">Draw Controls</label>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="panel panel-default">
+                                        <div id="ControlPointList" class="panel-body"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div hidden>
+            <script type="text/javascript" src="//code.jquery.com/jquery-1.11.3.min.js"></script>
+            <script type="text/javascript" src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+            <script type="text/javascript" src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+            <script type="text/javascript" src="Point.js"></script>
+            <script type="text/javascript" src="Control.js"></script>
+            <script type="text/javascript" src="Bezier.js"></script>
+            <script type="text/javascript">
+            /*globals Point, Control, Bezier */
+            
+            var Curve = (function ()
+            {
+                'use strict';
+                
+                return {
+                    segments: 10,
+                    settings: {
+                        drawArmature: true,
+                        drawControls: true,
+                    },
+                    controls: [],
+                    setup: function ()
+                    {
+                        Curve.add(new Control([60, 60]));
+                        Curve.add(new Control([120, 120]));
+                        Curve.add(new Control([180, 180]));
+                        Curve.add(new Control([240, 240]));
+                        Curve.add(new Control([300, 300]));
+                        Curve.add(new Control([360, 360]));
+                        Curve.add(new Control([420, 420]));
+                    },
+                    add: function (control)
+                    {
+                        var last = Curve.controls.length ? Curve.controls[Curve.controls.length - 1] : null;
+                        Curve.controls.push(control);
+                        if (last)
+                        {
+                            last.linkTo(control);
+                        }
+                    },
+                    refresh: function (canvas)
+                    {
+                        var ctx = canvas.getContext('2d'),
+                            i;
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        for (i = 0; i < Curve.controls.length - 1; i += 3)
+                        {
+                            ctx.beginPath();
+                            ctx.strokeStyle = 'black';
+                            $.each(Bezier.mapCurve(
+                                Curve.controls[i].position,
+                                Curve.controls[i + 1].position,
+                                Curve.controls[i + 2].position,
+                                Curve.controls[i + 3].position,
+                                Curve.segments
+                                ), function (index, point)
+                            {
+                                if (index < 1)
+                                {
+                                    ctx.moveTo(point[0], point[1]);
+                                }
+                                else
+                                {
+                                    ctx.lineTo(point[0], point[1]);
+                                }
+                            });
+                            ctx.stroke();
+                        }
+                        
+                        if (Curve.settings.drawArmature)
+                        {
+                            ctx.beginPath();
+                            ctx.strokeStyle = 'red';
+                            $.each(Curve.controls, function (index, control)
+                            {
+                                if (index < 1)
+                                {
+                                    ctx.moveTo(control.position[0], control.position[1]);
+                                }
+                                else
+                                {
+                                    ctx.lineTo(control.position[0], control.position[1]);
+                                }
+                            });
+                        }
+                        
+                        if (Curve.settings.drawControls)
+                        {
+                            ctx.stroke();
+                            $.each(Curve.controls, function (index, control)
+                            {
+                                ctx.beginPath();
+                                ctx.strokeStyle = 'blue';
+                                ctx.arc(control.position[0], control.position[1], 8, 0, Math.PI * 2);
+                                ctx.stroke();
+                            });
+                        }
+                    }
+                };
+            }());
+            
+            $(document).ready(function ()
+            {
+                'use strict';
+                
+                function updateSegmentSlider(value)
+                {
+                    Curve.segments = value;
+                    $('#CurveSegmentsLabel').text(value.toString());
+                }
+                
+                function updateControlList()
+                {
+                    var html = '';
+                    $.each(Curve.controls, function (index, control)
+                    {
+                        html += '<div class="input-group">';
+                        html += '<label class="input-group-addon">Control Point</label>';
+                        html += '<label class="form-control">' + Math.round(control.position[0]) + ', ' + Math.round(control.position[1]) + '</label>';
+                        html += '</div>';
+                    });
+                    $('#ControlPointList').empty().append(html);
+                }
+                
+                var selected = null,
+                    bezier = $('#BezierCanvas').mousedown(function (e)
+                    {
+                        var lastCheck = 8,
+                            rect = this.getBoundingClientRect(),
+                            m = [e.clientX - rect.left, e.clientY - rect.top],
+                            d;
+                        $.each(Curve.controls, function (index, control)
+                        {
+                            d = Point.distance(m, control.position);
+                            if (d <= lastCheck)
+                            {
+                                lastCheck = d;
+                                selected = control;
+                            }
+                        });
+                    }).mouseup(function ()
+                    {
+                        selected = null;
+                    }).mousemove(function (e)
+                    {
+                        if (selected)
+                        {
+                            var p = bezier.offset();
+                            selected.position[0] = (e.pageX || 0) - (p.left || 0);
+                            selected.position[1] = (e.pageY || 0) - (p.top || 0);
+                            updateControlList();
+                            Curve.refresh(this);
+                        }
+                    });
+                
+                $('#SegmentsSlider').slider({
+                    orientation: 'horizonal',
+                    min: 1,
+                    max: 32,
+                    value: Curve.segments,
+                    slide: function (e, ui)
+                    {
+                        updateSegmentSlider(ui.value);
+                        Curve.refresh(document.getElementById('BezierCanvas'));
+                    }
+                });
+                $('#CurveDrawArmature').change(function ()
+                {
+                    Curve.settings.drawArmature = this.checked;
+                    Curve.refresh(document.getElementById('BezierCanvas'));
+                }).change();
+                $('#CurveDrawControls').change(function ()
+                {
+                    Curve.settings.drawControls = this.checked;
+                    Curve.refresh(document.getElementById('BezierCanvas'));
+                }).change();
+                
+                window.onresize = function ()
+                {
+                    Curve.refresh(document.getElementById('BezierCanvas'));
+                };
+                
+                Curve.setup();
+                updateSegmentSlider(Curve.segments);
+                updateControlList();
+                Curve.refresh(document.getElementById('BezierCanvas'));
+            });
+            </script>
+        </div>
+    </body>
+</html>
