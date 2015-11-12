@@ -67,7 +67,7 @@
                                     </div>
                                 </div>
                                 <div class="row">
-                                    <div class="panel panel-default">
+                                    <div class="panel panel-default" style="overflow-y: scroll; max-height: 328px;">
                                         <div id="ControlPointList" class="panel-body"></div>
                                     </div>
                                 </div>
@@ -131,8 +131,7 @@
                                 Curve.controls[i + 1].position,
                                 Curve.controls[i + 2].position,
                                 Curve.controls[i + 3].position,
-                                Curve.segments
-                                ), function (index, point)
+                                Curve.segments), function (index, point)
                             {
                                 if (index < 1)
                                 {
@@ -161,11 +160,11 @@
                                     ctx.lineTo(control.position[0], control.position[1]);
                                 }
                             });
+                            ctx.stroke();
                         }
                         
                         if (Curve.settings.drawControls)
                         {
-                            ctx.stroke();
                             $.each(Curve.controls, function (index, control)
                             {
                                 ctx.beginPath();
